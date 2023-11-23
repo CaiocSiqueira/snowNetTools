@@ -4,15 +4,17 @@ import struct
 MAX_TTL = 64
 PORT = 33434
 
+nos = [0]
+
 destino = input('Ip de destino: ')
 
 socEnvio = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
 
 socRecebe = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
 
-socRecebe.bind(("", PORT))
+socRecebe.bind(('', PORT))
 
-socRecebe.settimeout(5)
+socRecebe.settimeout(2)
 
 for TTL in range(1, MAX_TTL):
     socEnvio.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, TTL)
@@ -25,6 +27,18 @@ for TTL in range(1, MAX_TTL):
 
     try:
         buffer, addr = socRecebe.recvfrom(1024)
+        if(addr[0] == nos[-1]):
+            break
+
         print(f"Resposta de {addr[0]}")
+
+        nos.append(addr[0])
+
     except socket.timeout:
         print("* Timeout")
+        
+        nos.append('0')
+    
+qtd = len(nos)
+    
+print(f"{qtd-1} nó(s) até o ultimo nó")
