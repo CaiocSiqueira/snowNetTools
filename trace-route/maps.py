@@ -1,47 +1,33 @@
 import folium
-from folium import plugins
 import requests
+import socket
+from collections import OrderedDict
+import subprocess
 
 class Maps:
 
     def __init__(self):
-        self.servidores = {}
-
+        self.servidores = OrderedDict()
+        self.adicionar_local()
+    
+    def adicionar_local(self):
+        ip_local = requests.get("http://ipv4.icanhazip.com").text.strip()
+        self.cidade(ip_local)
+        
+            
     def cidade(self, ip):
         try:
-            info = requests.get(f"https://ipinfo.io/{ip}")
+            info = requests.get(f"http://ip-api.com/json/{ip}")
+            info_json = info.json()
 
-            if info.status_code == 200:
-                info_json = info.json()
+            if 'lat' in info_json and 'lon' in info_json:
+                coordenadas = (info_json['lat'], info_json['lon'])
+                self.servidores[ip] = coordenadas
 
-                if 'loc' in info_json:
-                    coordenadas = tuple(map(float, info_json["loc"].split(',')))
-                    self.servidores[ip] = coordenadas
-                    
-                if 'city' in info_json:
-                    return info_json['city']
-                else:
-                    return "Cidade não disponível"
-
-    
+            if 'city' in info_json:
+                return info_json['city']
             else:
-                return "Falha na solicitação"
-
-        except requests.exceptions.RequestException as e:
-            return "Erro na solicitação"
-        
-    def coordenadas(self, ip):
-        try:
-            info = requests.get(f"https://ipinfo.io/{ip}")
-
-            if info.status_code == 200:
-                info_json = info.json()
-
-                if 'loc' in info_json:
-                    coordenadas = tuple(map(float, info_json["loc"].split(',')))
-                    localizacao = {[ip]: coordenadas}
-
-            return localizacao
+                return "Cidade não disponível"
 
         except requests.exceptions.RequestException as e:
             return "Erro na solicitação"
