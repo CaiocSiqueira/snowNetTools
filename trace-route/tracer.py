@@ -67,7 +67,7 @@ def trace_route(destino, time_to_live=MAX_TTL, maps=False):
         localizacao.criar_mapa()
     
 def criar_pacote_icmp(ttl):
-    tipo = 8  # Echo Request
+    tipo = 8
     codigo = 0
     checksum = 0
     identificador = 12345
