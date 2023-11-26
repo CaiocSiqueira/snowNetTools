@@ -2,8 +2,7 @@ import argparse
 import socket
 import struct
 import tabulate
-import requests
-from maps import criar_mapa
+import Maps
 
 MAX_TTL = 32
 PORT = 33434
@@ -20,20 +19,12 @@ def main():
     trace_route(args.destino, args.ttl, args.maps)
 
 def trace_route(destino, time_to_live=MAX_TTL, maps=False):
-    nos = [0]
-
-    dados_localizacao = {
-        "Cidade1": (-23.550520, -46.633307),
-        "Cidade2": (40.712776, -74.005974),
-        "Cidade3": (51.509865, -0.118092),
-    }
-
-    criar_mapa(dados_localizacao)
-    
     socEnvio = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
     socRecebe = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
     socRecebe.bind(('', PORT))
     socRecebe.settimeout(TIMEOUT)
+
+    localizacao = Maps.Maps()
 
     for TTL in range(1, time_to_live + 1):
         socEnvio.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, TTL)
@@ -49,8 +40,8 @@ def trace_route(destino, time_to_live=MAX_TTL, maps=False):
             if addr[0] == ip:
                 break
             
-            print(tabulate.tabulate([['IP', 'TTL', 'PROTOCOLO', 'LOCALIZAÇÃO'], [addr[0], TTL, 'UDP', cidade(addr[0])]], tablefmt='heavy_grid'))
-            nos.append(addr[0])
+            print(tabulate.tabulate([['IP', 'TTL', 'PROTOCOLO', 'LOCALIZAÇÃO'], [addr[0], TTL, 'UDP', localizacao.cidade((addr[0]))]], tablefmt='heavy_grid'))
+            
 
         except socket.timeout:
 
@@ -63,54 +54,17 @@ def trace_route(destino, time_to_live=MAX_TTL, maps=False):
 
             try:
                 buffer, addr = socRecebe.recvfrom(1024)
-                print(tabulate.tabulate([['IP', 'TTL', 'PROTOCOLO', 'LOCALIZAÇÃO'], [addr[0], TTL, 'ICMP', cidade(addr[0])]], tablefmt='heavy_grid'))
-                nos.append(addr[0]) 
+                print(tabulate.tabulate([['IP', 'TTL', 'PROTOCOLO', 'LOCALIZAÇÃO'], [addr[0], TTL, 'ICMP', localizacao.cidade(addr[0])]], tablefmt='heavy_grid')) 
 
                 if addr[0] == ip:
                     break
             except socket.timeout:
                 print(tabulate.tabulate([['IP', 'TTL', 'PROTOCOLO', 'LOCALIZAÇÃO'], ['DESCONHECIDO', TTL, 'ICMP', 'Silent Hill']], tablefmt='heavy_grid'))
-                nos.append('0')
 
                 if addr[0] == ip:
                     break
-
-    qtd = len(nos)
-    print(f"{qtd-1} nó(s) até o último nó")
-
-def cidade(ip):
-    try:
-        info = requests.get(f"https://ipinfo.io/{ip}")
-
-        if info.status_code == 200:
-            info_json = info.json()
-
-            if 'city' in info_json:
-                return info_json['city']
-            else:
-                return "Cidade não disponível"
-        else:
-            return "Falha na solicitação"
-
-    except requests.exceptions.RequestException as e:
-        return "Erro na solicitação"
-    
-def coordenadas(ip):
-    try:
-        info = requests.get(f"https://ipinfo.io/{ip}")
-
-        if info.status_code == 200:
-            info_json = info.json()
-
-            if 'loc' in info_json:
-                coordenadas = tuple(map(float, info_json["loc"].split(',')))
-                localizacao = {[ip]: coordenadas}
-
-        return localizacao
-
-    except requests.exceptions.RequestException as e:
-        return "Erro na solicitação"
-
+    if maps:
+        localizacao.criar_mapa()
     
 def criar_pacote_icmp(ttl):
     tipo = 8  # Echo Request
