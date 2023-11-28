@@ -2,9 +2,8 @@ import folium
 import requests
 import socket
 from collections import OrderedDict
-import subprocess
 
-class Maps:
+class maps:
 
     def __init__(self):
         self.servidores = OrderedDict()

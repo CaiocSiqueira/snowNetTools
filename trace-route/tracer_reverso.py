@@ -1,36 +1,44 @@
-import argparse
 import socket
 import tabulate
 import maps
 import packets
-import tracer_reverso
 
 MAX_TTL = 32
 PORT = 33434
 PORT_TCP = 80
-TIMEOUT = 2
+TIMEOUT = 20
 
-def main():
-    parser = argparse.ArgumentParser(description='Documentação trace')
-    parser.add_argument('destino')
-    parser.add_argument('--ttl', type=int, default=MAX_TTL, help=f'Definir um número de TTL diferente do padrão ({MAX_TTL})')
-    parser.add_argument('--mapa', action='store_true', help='Gerar mapa exibindo a rota realizada')
-    parser.add_argument('--ouvinte', action='store_true', help='Deixar o trace ouvindo para receber requisições de um trace reverso')
-    parser.add_argument('--reverso', action='store_true', help='Realizar um trace reverso')
-    args = parser.parse_args()
+def iniciar_reverso():
+    ip_reverso = ouvindo()
 
-    if args.ouvinte:
-        tracer_reverso.ouvindo()
+    trace_route_reverso(ip_reverso)
 
-    elif args.reverso:
-        enviar_ping(args.destino)
-        esperar_trace_reverso()
-        trace_route(args.destino, args.ttl, args.mapa)
+def ouvindo():
+    print('Aguardando conexoes')
 
-    else:
-        trace_route(args.destino, args.ttl, args.mapa)
+    socRecebe = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
+    socRecebe.bind(('0.0.0.0', PORT))
+    socRecebe.settimeout(TIMEOUT)
 
-def trace_route(destino, time_to_live=MAX_TTL, mapa=False):
+    while True:
+        try:
+            buffer, addr = socRecebe.recvfrom(1024)
+
+            ip_reverso = addr[0]
+
+            print(f"Recebido pacote de {addr}")
+            break
+
+        except socket.timeout:
+            print("Timeout - Nenhum pacote recebido.")
+            break
+
+    socRecebe.close()
+
+    return addr[0]
+
+
+def trace_route_reverso(destino, time_to_live=MAX_TTL, mapa=False):
     socEnvio = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
     socRecebe = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
     socRecebe.bind(('', PORT))
@@ -75,21 +83,7 @@ def trace_route(destino, time_to_live=MAX_TTL, mapa=False):
 
                 if addr[0] == ip:
                     break
-    if mapa:
-        localizacao.criar_mapa()
+    
+    return localizacao.servidores
 
-def enviar_ping(destino, i = 0):
-    socPing = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
-
-    udp_packet = packets.criar_pacote_udp()
-
-    while i < 5:
-        socPing.sendto(udp_packet, (destino, PORT))
-        i += 1
-
-def esperar_trace_reverso():
-    pass
-
-if __name__ == '__main__':
-    main()
 
