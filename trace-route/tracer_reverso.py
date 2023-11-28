@@ -2,6 +2,7 @@ import socket
 import tabulate
 import maps
 import packets
+import struct
 
 MAX_TTL = 32
 PORT = 33434
@@ -26,9 +27,11 @@ def ouvindo():
         try:
             buffer, addr = socRecebe.recvfrom(1024)
 
-            ip_reverso = addr[0]
+            if b'Ping' in buffer:
+                print(f"Recebido pacote de {addr}")
+            else:
+                print(f"Ignorado pacote de {addr} sem a palavra-chave 'Ping'")
 
-            print(f"Recebido pacote de {addr}")
             break
 
         except socket.timeout:
@@ -38,6 +41,8 @@ def ouvindo():
     socRecebe.close()
 
     return addr[0]
+
+
 
 
 def trace_route_reverso(destino, time_to_live=MAX_TTL, mapa=False):

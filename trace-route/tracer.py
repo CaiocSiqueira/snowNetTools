@@ -3,6 +3,7 @@ import socket
 import tabulate
 import maps
 import packets
+import struct
 import tracer_reverso
 
 MAX_TTL = 32
@@ -24,8 +25,8 @@ def main():
 
     elif args.reverso:
         enviar_ping(args.destino)
-        esperar_trace_reverso(args.destino)
-        trace_route(args.destino, args.ttl, args.mapa)
+        #esperar_trace_reverso(args.destino)
+        #trace_route(args.destino, args.ttl, args.mapa)
 
     else:
         trace_route(args.destino, args.ttl, args.mapa)
@@ -81,7 +82,10 @@ def trace_route(destino, time_to_live=MAX_TTL, mapa=False):
 def enviar_ping(destino, i = 0):
     socPing = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
 
-    udp_packet = packets.criar_pacote_udp()
+    mensagem = "Ping"
+
+    udp_header = struct.pack('!HHHH', PORT, PORT, 8 + len(mensagem), 0)
+    udp_packet = udp_header + mensagem.encode('utf-8')
 
     while i < 5:
         socPing.sendto(udp_packet, (destino, PORT))
