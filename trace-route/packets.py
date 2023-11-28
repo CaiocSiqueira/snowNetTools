@@ -28,7 +28,28 @@ def criar_pacote_icmp(ttl):
     return pacote_icmp
 
 def criar_pacote_tcp():
-     pass
+     source_port = 12345
+    dest_port = PORT_TCP
+    seq_num = 0
+    ack_num = 0
+    data_offset_reserved_flags = (5 << 4)  # Tamanho do cabeçalho em palavras de 32 bits
+    flags = 0  # Sem flags para um pacote TCP comum
+    window_size = 8192
+    checksum = 0
+    urgent_pointer = 0
+
+    tcp_header = struct.pack('!HHIIBBHHH', source_port, dest_port, seq_num, ack_num, data_offset_reserved_flags, flags, window_size, checksum, urgent_pointer)
+
+    # Dados TCP
+    dados = b'Hello, TCP!'
+    pacote_tcp = tcp_header + dados
+
+    # Calcula o checksum
+    pseudo_header = struct.pack('!4s4sBBH', b'\x00\x00\x00\x00', b'\x00\x00\x00\x00', 0, socket.IPPROTO_TCP, len(pacote_tcp))
+    checksum = calcula_checksum(pseudo_header + pacote_tcp)
+    tcp_header = struct.pack('!HHIIBBHHH', source_port, dest_port, seq_num, ack_num, data_offset_reserved_flags, flags, window_size, checksum, urgent_pointer)
+
+    return tcp_header + dados
 
 def calcula_checksum(data):
     length = len(data)
