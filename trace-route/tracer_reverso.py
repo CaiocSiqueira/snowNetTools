@@ -6,19 +6,21 @@ import packets
 MAX_TTL = 32
 PORT = 33434
 PORT_TCP = 80
-TIMEOUT = 20
+TIMEOUT = 2
 
 def iniciar_reverso():
     ip_reverso = ouvindo()
 
-    trace_route_reverso(ip_reverso)
+    trace_reverso_dados = trace_route_reverso(ip_reverso)
+
+    responder_com_reverso(trace_reverso_dados)
 
 def ouvindo():
     print('Aguardando conexoes')
 
     socRecebe = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
     socRecebe.bind(('0.0.0.0', PORT))
-    socRecebe.settimeout(TIMEOUT)
+    socRecebe.settimeout(40)
 
     while True:
         try:
@@ -87,3 +89,13 @@ def trace_route_reverso(destino, time_to_live=MAX_TTL, mapa=False):
     return localizacao.servidores
 
 
+def responder_com_reverso(dados):
+    envia_ip_reverso = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    envia_ip_reverso.bind(('0.0.0.0', 9100))
+    envia_ip_reverso.listen()
+
+    recebe_socket, recebe_addr = envia_ip_reverso.accept()
+
+    recebe_socket.send(str(dados).encode())
+
+    recebe_socket.close()

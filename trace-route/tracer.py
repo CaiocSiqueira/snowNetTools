@@ -20,11 +20,11 @@ def main():
     args = parser.parse_args()
 
     if args.ouvinte:
-        tracer_reverso.ouvindo()
+        tracer_reverso.iniciar_reverso()
 
     elif args.reverso:
         enviar_ping(args.destino)
-        esperar_trace_reverso()
+        esperar_trace_reverso(args.destino)
         trace_route(args.destino, args.ttl, args.mapa)
 
     else:
@@ -87,8 +87,14 @@ def enviar_ping(destino, i = 0):
         socPing.sendto(udp_packet, (destino, PORT))
         i += 1
 
-def esperar_trace_reverso():
-    pass
+def esperar_trace_reverso(ip_trace_reverso):
+    recebe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    recebe.connect((f'{ip_trace_reverso}', 9100))
+
+    ips_reversos = recebe.recv(1024).decode()
+    print(f'Dados Recebidos: {ips_reversos}')
+
+    recebe.close()
 
 if __name__ == '__main__':
     main()
