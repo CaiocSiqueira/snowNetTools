@@ -2,41 +2,38 @@ import socket
 import tabulate
 import maps
 import packets
+import struct
 
 MAX_TTL = 32
 PORT = 33434
 PORT_TCP = 80
-TIMEOUT = 20
+TIMEOUT = 2
 
 def iniciar_reverso():
-    ip_reverso = ouvindo()
+    resultado = ouvindo()
+    ip_legivel = resultado[0]
+    addr = resultado[1]
+    trace_reverso_dados = trace_route_reverso(ip_legivel)
 
-    trace_route_reverso(ip_reverso)
+    responder_com_reverso(addr[0], trace_reverso_dados)
 
 def ouvindo():
-    print('Aguardando conexoes')
+    print('Aguardando conexões')
 
-    socRecebe = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
-    socRecebe.bind(('0.0.0.0', PORT))
-    socRecebe.settimeout(TIMEOUT)
+    socRecebe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    socRecebe.bind(('0.0.0.0', 12345))
+    socRecebe.listen()
 
     while True:
-        try:
-            buffer, addr = socRecebe.recvfrom(1024)
+        conn, addr = socRecebe.accept()
+        with conn:
+            buffer = conn.recv(1024)
 
-            ip_reverso = addr[0]
+            ip_legivel = buffer.decode('utf-8')
 
-            print(f"Recebido pacote de {addr}")
-            break
+            print(f"Recebido pacote de {addr} com IP: {ip_legivel}")
 
-        except socket.timeout:
-            print("Timeout - Nenhum pacote recebido.")
-            break
-
-    socRecebe.close()
-
-    return addr[0]
-
+            return ip_legivel, addr
 
 def trace_route_reverso(destino, time_to_live=MAX_TTL, mapa=False):
     socEnvio = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
@@ -85,5 +82,13 @@ def trace_route_reverso(destino, time_to_live=MAX_TTL, mapa=False):
                     break
     
     return localizacao.servidores
+
+def responder_com_reverso(destino, dados):
+    envia_ip_reverso = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    envia_ip_reverso.connect((destino, 54321))
+
+    envia_ip_reverso.send(str(dados).encode())
+
+    envia_ip_reverso.close()
 
 
