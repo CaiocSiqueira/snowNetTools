@@ -91,4 +91,3 @@ def responder_com_reverso(destino, dados):
 
     envia_ip_reverso.close()
 
-
