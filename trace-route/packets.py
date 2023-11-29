@@ -27,9 +27,6 @@ def criar_pacote_icmp(ttl):
 
     return pacote_icmp
 
-def criar_pacote_tcp():
-     pass
-
 def calcula_checksum(data):
     length = len(data)
     sum_ = 0
