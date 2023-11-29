@@ -28,13 +28,15 @@ def main():
 
     elif args.reverso:
         enviar_ping(args.destino)
-        receber_dados_reverso()
-        trace_route(args.destino, args.ttl, args.mapa)
+        dados_reverso = receber_dados_reverso()
+        ip = list(dados_reverso.keys())[0]
+        print(f'Iniciando trace para {ip}')
+        trace_route(ip, args.ttl, args.mapa, True, dados_reverso)
 
     else:
         trace_route(args.destino, args.ttl, args.mapa)
 
-def trace_route(destino, time_to_live=MAX_TTL, mapa=False):
+def trace_route(destino, time_to_live=MAX_TTL, mapa=False, reverso=False, dados_reverso=None):
     socEnvio = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
     socRecebe = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
     socRecebe.bind(('', PORT))
@@ -81,6 +83,9 @@ def trace_route(destino, time_to_live=MAX_TTL, mapa=False):
                     break
     if mapa:
         localizacao.criar_mapa()
+    if reverso:
+        print(dados_reverso)
+        localizacao.criar_mapa(True, dados_reverso)
 
 def enviar_ping(destino):
     meu_ip = requests.get("http://ipv4.icanhazip.com").text.strip()
@@ -103,12 +108,16 @@ def receber_dados_reverso():
         recebe_socket, recebe_addr = recebe_ip_reverso.accept()
 
         dados_recebidos = recebe_socket.recv(1024)
-        dados_decodificados = json.loads(dados_recebidos.decode())
+        dados_str = dados_recebidos.decode()
 
-        if isinstance(dados_decodificados, dict):
+        dados_ord_dict = eval(dados_str)
+
+        if isinstance(dados_ord_dict, OrderedDict):
             print("Dados Recebidos:")
-            for key, value in dados_decodificados.items():
+            for key, value in dados_ord_dict.items():
                 print(f"{key}: {value}")
+
+            return dados_ord_dict
         else:
             print("Erro nos dados recebidos")
 
