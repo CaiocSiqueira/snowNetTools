@@ -27,7 +27,6 @@ def criar_pacote_icmp(ttl):
 
     return pacote_icmp
 
-
 def calcula_checksum(data):
     length = len(data)
     sum_ = 0
@@ -49,5 +48,6 @@ def calcula_checksum(data):
     result = ~sum_ & 0xffff
     result = result >> 8 | ((result & 0xff) << 8)
     return result
+
 
 
