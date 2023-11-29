@@ -1,9 +1,12 @@
 import argparse
+from collections import OrderedDict
+import json
 import socket
 import tabulate
 import maps
 import packets
 import struct
+import requests
 import tracer_reverso
 
 MAX_TTL = 32
@@ -25,8 +28,8 @@ def main():
 
     elif args.reverso:
         enviar_ping(args.destino)
-        #esperar_trace_reverso(args.destino)
-        #trace_route(args.destino, args.ttl, args.mapa)
+        receber_dados_reverso()
+        trace_route(args.destino, args.ttl, args.mapa)
 
     else:
         trace_route(args.destino, args.ttl, args.mapa)
@@ -79,26 +82,42 @@ def trace_route(destino, time_to_live=MAX_TTL, mapa=False):
     if mapa:
         localizacao.criar_mapa()
 
-def enviar_ping(destino, i = 0):
-    socPing = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
+def enviar_ping(destino):
+    meu_ip = requests.get("http://ipv4.icanhazip.com").text.strip()
+    envia_ip_reverso = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    envia_ip_reverso.connect((destino, 12345))
 
-    mensagem = "Ping"
+    envia_ip_reverso.send(str(meu_ip).encode())
 
-    udp_header = struct.pack('!HHHH', PORT, PORT, 8 + len(mensagem), 0)
-    udp_packet = udp_header + mensagem.encode('utf-8')
+    envia_ip_reverso.close()
 
-    while i < 5:
-        socPing.sendto(udp_packet, (destino, PORT))
-        i += 1
 
-def esperar_trace_reverso(ip_trace_reverso):
-    recebe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    recebe.connect((f'{ip_trace_reverso}', 9100))
+def receber_dados_reverso():
+    recebe_ip_reverso = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    recebe_ip_reverso.bind(('0.0.0.0', 54321))
+    recebe_ip_reverso.listen()
 
-    ips_reversos = recebe.recv(1024).decode()
-    print(f'Dados Recebidos: {ips_reversos}')
+    print('Aguardando conexões para receber dados com trace reverso')
 
-    recebe.close()
+    try:
+        recebe_socket, recebe_addr = recebe_ip_reverso.accept()
+
+        dados_recebidos = recebe_socket.recv(1024)
+        dados_str = dados_recebidos.decode()
+
+        dados_ord_dict = eval(dados_str)
+
+        if isinstance(dados_ord_dict, OrderedDict):
+            print("Dados Recebidos:")
+            for key, value in dados_ord_dict.items():
+                print(f"{key}: {value}")
+        else:
+            print("Erro nos dados recebidos")
+
+    except Exception as e:
+        print(f"Erro ao receber dados: {e}")
+    finally:
+        recebe_ip_reverso.close()
 
 if __name__ == '__main__':
     main()

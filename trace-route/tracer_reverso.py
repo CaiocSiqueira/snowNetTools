@@ -10,40 +10,30 @@ PORT_TCP = 80
 TIMEOUT = 2
 
 def iniciar_reverso():
-    ip_reverso = ouvindo()
+    resultado = ouvindo()
+    ip_legivel = resultado[0]
+    addr = resultado[1]
+    trace_reverso_dados = trace_route_reverso(ip_legivel)
 
-    trace_reverso_dados = trace_route_reverso(ip_reverso)
-
-    responder_com_reverso(trace_reverso_dados)
+    responder_com_reverso(addr[0], trace_reverso_dados)
 
 def ouvindo():
-    print('Aguardando conexoes')
+    print('Aguardando conexões')
 
-    socRecebe = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
-    socRecebe.bind(('0.0.0.0', PORT))
-    socRecebe.settimeout(40)
+    socRecebe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    socRecebe.bind(('0.0.0.0', 12345))
+    socRecebe.listen()
 
     while True:
-        try:
-            buffer, addr = socRecebe.recvfrom(1024)
+        conn, addr = socRecebe.accept()
+        with conn:
+            buffer = conn.recv(1024)
 
-            if b'Ping' in buffer:
-                print(f"Recebido pacote de {addr}")
-            else:
-                print(f"Ignorado pacote de {addr} sem a palavra-chave 'Ping'")
+            ip_legivel = buffer.decode('utf-8')
 
-            break
+            print(f"Recebido pacote de {addr} com IP: {ip_legivel}")
 
-        except socket.timeout:
-            print("Timeout - Nenhum pacote recebido.")
-            break
-
-    socRecebe.close()
-
-    return addr[0]
-
-
-
+            return ip_legivel, addr
 
 def trace_route_reverso(destino, time_to_live=MAX_TTL, mapa=False):
     socEnvio = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
@@ -93,14 +83,10 @@ def trace_route_reverso(destino, time_to_live=MAX_TTL, mapa=False):
     
     return localizacao.servidores
 
-
-def responder_com_reverso(dados):
+def responder_com_reverso(destino, dados):
     envia_ip_reverso = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    envia_ip_reverso.bind(('0.0.0.0', 9100))
-    envia_ip_reverso.listen()
+    envia_ip_reverso.connect((destino, 54321))
 
-    recebe_socket, recebe_addr = envia_ip_reverso.accept()
+    envia_ip_reverso.send(str(dados).encode())
 
-    recebe_socket.send(str(dados).encode())
-
-    recebe_socket.close()
+    envia_ip_reverso.close()
